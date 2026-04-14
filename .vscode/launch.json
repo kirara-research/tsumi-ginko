@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:ginko}",
+            "name": "Debug ginko",
+            "target": "ginko",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug ginko"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:ginko}",
+            "name": "Release ginko",
+            "target": "ginko",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release ginko"
+        }
+    ]
+}
