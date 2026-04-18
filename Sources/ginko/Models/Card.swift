@@ -1,15 +1,15 @@
 func createMasterRepresentationMap<T: CaseIterable>(_ type: T.Type) -> [String: T] {
-    return [String : T](uniqueKeysWithValues: type.allCases.map { (String(describing: $0), $0) })
+    [String: T](uniqueKeysWithValues: type.allCases.map { (String(describing: $0), $0) })
 }
 
 protocol ConvertibleFromMasterRepresentation: CaseIterable {
-    associatedtype MasterRepresentation : Hashable
-    static var masterRepresentationMap: [MasterRepresentation : Self] { get }
+    associatedtype MasterRepresentation: Hashable
+    static var masterRepresentationMap: [MasterRepresentation: Self] { get }
 }
 
 extension ConvertibleFromMasterRepresentation {
     static func fromMasterRepresentation(_ mr: MasterRepresentation) -> Self! {
-        return Self.masterRepresentationMap[mr]!
+        masterRepresentationMap[mr]!
     }
 }
 
@@ -45,17 +45,17 @@ enum CardUnit: String, Codable, ConvertibleFromMasterRepresentation {
     case theme_park = "wxs"
     case school_refusal = "n25"
     case piapro = "vs"
-    case none = "none"
+    case none
 
     func toMasterRepresentation() -> MasterRepresentation {
-        switch(self) {
-            case .light_sound: return "light_sound"
-            case .idol: return "idol"
-            case .street: return "street"
-            case .theme_park: return "theme_park"
-            case .school_refusal: return "school_refusal"
-            case .piapro: return "piapro"
-            case .none: return "none"
+        switch self {
+        case .light_sound: "light_sound"
+        case .idol: "idol"
+        case .street: "street"
+        case .theme_park: "theme_park"
+        case .school_refusal: "school_refusal"
+        case .piapro: "piapro"
+        case .none: "none"
         }
     }
 }

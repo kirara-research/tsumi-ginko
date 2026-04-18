@@ -1,10 +1,10 @@
+import Dispatch
 import Vapor
-import Dispatch 
 
 final class DatabaseInits: LifecycleHandler {
-    nonisolated(unsafe) var signalSource: (any DispatchSourceSignal)? = nil
+    nonisolated(unsafe) var signalSource: (any DispatchSourceSignal)?
 
-    func installSigHandler(_ code: Int32) {        
+    func installSigHandler(_ code: Int32) {
         let source = DispatchSource.makeSignalSource(signal: code, queue: DispatchQueue.main)
         source.setEventHandler {
             print("Reloading databases...")
@@ -20,8 +20,8 @@ final class DatabaseInits: LifecycleHandler {
         signalSource = source
     }
 
-    // Called before application boots.
-    func willBoot(_ app: Application) throws {
+    /// Called before application boots.
+    func willBoot(_: Application) throws {
         if let dataRoot = Environment.get("DATA_ROOT") {
             try StoryDBHandle.initialize(path: "\(dataRoot)/story.db")
             try MasterDBHandle.initialize(path: "\(dataRoot)/master.db")
@@ -33,16 +33,16 @@ final class DatabaseInits: LifecycleHandler {
         installSigHandler(SIGHUP)
     }
 
-    func shutdown(_ application: Application) {
+    func shutdown(_: Application) {
         signalSource?.cancel()
     }
 }
 
-// configures your application
+/// configures your application
 public func configure(_ app: Application) async throws {
     app.lifecycle.use(DatabaseInits())
     // uncomment to serve files from /Public folder
-    //app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
+    // app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
     let origins = (Environment.get("TSUMI_ALLOWED_ORIGINS") ?? "*").components(separatedBy: ",")
 
     app.middleware.use(TsumiCORSMiddleware(patterns: origins), at: .beginning)

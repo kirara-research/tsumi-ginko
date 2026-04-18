@@ -1,5 +1,5 @@
-import GRDB
 import Foundation
+import GRDB
 
 class MasterDataService {
     let dbQueue: DatabaseQueue
@@ -13,10 +13,10 @@ class MasterDataService {
     func getVersion() -> String {
         do {
             let ver = try dbQueue.read { db in
-                let row = try Row.fetchOne(try db.makeStatement(literal: """
+                let row = try Row.fetchOne(db.makeStatement(literal: """
                     SELECT version FROM _version
                 """))
-                if let row = row {
+                if let row {
                     return String(row["version"])
                 } else {
                     return "(unknown)"

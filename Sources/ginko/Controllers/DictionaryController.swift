@@ -1,5 +1,5 @@
-import Vapor
 import NIOFileSystem
+import Vapor
 
 struct DictionaryController: RouteCollection {
     func boot(routes: any RoutesBuilder) throws {

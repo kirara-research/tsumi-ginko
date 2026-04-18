@@ -34,7 +34,7 @@ struct MySEKAITalkController: RouteCollection {
         }
         if let weather_related: Bool = req.query["weather_related"] {
             filter.weather_related = weather_related
-        } 
+        }
         if let visits_related: Bool = req.query["visits_related"] {
             filter.visits_related = visits_related
         }
@@ -47,19 +47,20 @@ struct MySEKAITalkController: RouteCollection {
             filter.only_region = only_region
         }
 
-        var count: Int
-        if let reqCount: Int = req.query["count"] {
-            count = min(reqCount, 24)
+        let count: Int = if let reqCount: Int = req.query["count"] {
+            min(reqCount, 24)
         } else {
-            count = 24
+            24
         }
 
         let (talks, fixNames, hasMore) = try MySEKAITalkService().listMySEKAITalk(
-            matching: filter, after: req.query["after"], maxCount: count)
-        let overallPageID = hasMore ? talks.min { $0.id < $1.id }.flatMap { $0.id } : nil
+            matching: filter, after: req.query["after"], maxCount: count,
+        )
+        let overallPageID = hasMore ? talks.min { $0.id < $1.id }.flatMap(\.id) : nil
 
         return Response(status: .ok, headers: standardHeaders(), body: Response.Body(
-            data: try! jsonEncoder().encode(TalkListResponse(talks: talks, furniture_names: fixNames, page_id: overallPageID))))
+            data: try! jsonEncoder().encode(TalkListResponse(talks: talks, furniture_names: fixNames, page_id: overallPageID)),
+        ))
     }
 
     func talkSingle(req: Request) async throws -> Response {
@@ -76,8 +77,9 @@ struct MySEKAITalkController: RouteCollection {
         guard let (main, related, fixNames) = res else {
             return error("Not found", status: .notFound)
         }
-    
+
         return Response(status: .ok, headers: standardHeaders(), body: Response.Body(
-            data: try! jsonEncoder().encode(TalkSingleResponse(talk: main, related_talks: related, furniture_names: fixNames))))
+            data: try! jsonEncoder().encode(TalkSingleResponse(talk: main, related_talks: related, furniture_names: fixNames)),
+        ))
     }
 }

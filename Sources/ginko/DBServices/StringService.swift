@@ -21,7 +21,7 @@ protocol GroupTitleAndDescriptionAccepting {
 
 extension GroupTitleAccepting {
     func applyGroupTitles(_ gts: [EntityID: GroupTitle]) -> Self {
-        if let gt = gts[self.id] {
+        if let gt = gts[id] {
             var n = self
             n.name = gt.name
             return n
@@ -32,7 +32,7 @@ extension GroupTitleAccepting {
 
 extension GroupTitleAndDescriptionAccepting {
     func applyGroupTitles(_ gts: [EntityID: GroupTitle]) -> Self {
-        if let gt = gts[self.id] {
+        if let gt = gts[id] {
             var n = self
             n.name = gt.name
             n.description = gt.description
@@ -44,7 +44,7 @@ extension GroupTitleAndDescriptionAccepting {
 
 extension Array where Element: GroupTitleAccepting {
     mutating func applyGroupTitles(_ gts: [EntityID: GroupTitle]) {
-        for (i, _) in self.enumerated() {
+        for (i, _) in enumerated() {
             self[i] = self[i].applyGroupTitles(gts)
         }
     }
@@ -52,7 +52,7 @@ extension Array where Element: GroupTitleAccepting {
 
 extension Array where Element: GroupTitleAndDescriptionAccepting {
     mutating func applyGroupTitles(_ gts: [EntityID: GroupTitle]) {
-        for (i, _) in self.enumerated() {
+        for (i, _) in enumerated() {
             self[i] = self[i].applyGroupTitles(gts)
         }
     }
@@ -68,9 +68,10 @@ class StringService {
     func latestTranslatedEntity(forLang lang: String, inDomain domain: String) throws -> EntityID {
         let row = try dbQueue.read { db in
             try Row.fetchOne(db.makeStatement(
-                literal: "SELECT MAX(id) AS id FROM group_title_v1 WHERE domain=\(domain) AND lang=\(lang)"))
+                literal: "SELECT MAX(id) AS id FROM group_title_v1 WHERE domain=\(domain) AND lang=\(lang)",
+            ))
         }
-        if let row = row {
+        if let row {
             return row["id"]
         }
         return 0
@@ -78,7 +79,7 @@ class StringService {
 
     // TODO: replace with grdb literal sql
     private static func paramList(count: Int) -> String {
-        return [String](repeating: "?", count: count).joined(separator: ", ")
+        [String](repeating: "?", count: count).joined(separator: ", ")
     }
 
     private func buildGroupTitleResult(from rows: [Row]) -> [EntityID: GroupTitle] {
@@ -102,7 +103,7 @@ class StringService {
                 sql: """
                     SELECT id, lang, title, description FROM group_title_v1 WHERE domain=? ORDER BY id, lang
                 """,
-                arguments: [domain]
+                arguments: [domain],
             )
             return buildGroupTitleResult(from: rows)
         }
@@ -115,7 +116,7 @@ class StringService {
                 sql: """
                     SELECT id, lang, title, description FROM group_title_v1 WHERE domain=? AND id=? ORDER BY id, lang
                 """,
-                arguments: [domain, id]
+                arguments: [domain, id],
             )
             return buildGroupTitleResult(from: rows)
         }
@@ -131,7 +132,7 @@ class StringService {
                     SELECT id, lang, title, description FROM group_title_v1 
                     WHERE domain=? AND id IN (\(StringService.paramList(count: ids.count))) ORDER BY id, lang
                 """,
-                arguments: StatementArguments(params)
+                arguments: StatementArguments(params),
             )
             return buildGroupTitleResult(from: rows)
         }
@@ -158,7 +159,7 @@ class StringService {
                     LEFT JOIN script ON chapter_title_v1.script_grp_id = script.ref 
                     WHERE domain=? ORDER BY script.ref
                 """,
-                arguments: [domain]
+                arguments: [domain],
             )
             return buildChapterTitleResult(from: rows)
         }
@@ -173,7 +174,7 @@ class StringService {
                     LEFT JOIN script ON chapter_title_v1.script_grp_id = script.ref 
                     WHERE domain=? AND script.id=? ORDER BY script.ref, lang
                 """,
-                arguments: [domain, id]
+                arguments: [domain, id],
             )
             return buildChapterTitleResult(from: rows)
         }
@@ -191,7 +192,7 @@ class StringService {
                     WHERE domain=? AND script.id IN (\(StringService.paramList(count: ids.count)))
                     ORDER BY script.ref, lang
                 """,
-                arguments: StatementArguments(params)
+                arguments: StatementArguments(params),
             )
             return buildChapterTitleResult(from: rows)
         }

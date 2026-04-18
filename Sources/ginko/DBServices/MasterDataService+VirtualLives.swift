@@ -1,10 +1,10 @@
-import GRDB
 import Foundation
+import GRDB
 
 extension MasterDataService /* Virtual Live */ {
     func listIndependentVirtualLives() throws -> [VirtualLiveSetlist] {
         var vlsets = try dbQueue.read { db in
-            let rows = try Row.fetchAll(try db.makeStatement(literal: """
+            let rows = try Row.fetchAll(db.makeStatement(literal: """
                 SELECT DISTINCT virtualLives.id, virtualLives.assetbundleName,
                     virtualLives.startAt
                 FROM virtualLives_virtualLiveSetlists
@@ -16,17 +16,17 @@ extension MasterDataService /* Virtual Live */ {
                 ORDER BY virtualLives.startAt
             """))
 
-            return rows.map { row in 
-                VirtualLiveSetlist(id: row["id"], 
-                    name: [:], 
-                    description: [:], 
-                    resource_name: row["assetbundleName"], 
-                    release_date: Date(timeIntervalSince1970: row["startAt"] / 1000), 
-                    episodes: [])
+            return rows.map { row in
+                VirtualLiveSetlist(id: row["id"],
+                                   name: [:],
+                                   description: [:],
+                                   resource_name: row["assetbundleName"],
+                                   release_date: Date(timeIntervalSince1970: row["startAt"] / 1000),
+                                   episodes: [])
             }
         }
 
-        let haveIds = vlsets.map { $0.id }
+        let haveIds = vlsets.map(\.id)
         let names = try stringService.getGroupTitles(forEntities: haveIds, inDomain: "vlive")
         vlsets.applyGroupTitles(names)
         return vlsets
@@ -37,7 +37,7 @@ extension MasterDataService /* Virtual Live */ {
         var needBroadcastMusicTitles: [Int: [MusicPerformance]] = [:]
 
         let setlist = try dbQueue.read { db -> VirtualLiveSetlist? in
-            let rows = try Row.fetchAll(try db.makeStatement(literal: """
+            let rows = try Row.fetchAll(db.makeStatement(literal: """
                 SELECT virtualLives.id, virtualLives.assetbundleName AS banner, virtualLiveSetlistType, 
                     virtualLives_virtualLiveSetlists.assetbundleName AS epSId,
                     musicId, musicVocalId, virtualLives_virtualLiveSetlists.seq,
@@ -53,13 +53,13 @@ extension MasterDataService /* Virtual Live */ {
             }
 
             let rowFirst = rows[0]
-            let group = VirtualLiveSetlist(id: rowFirst["id"], 
-                name: [:], 
-                description: [:], 
-                resource_name: rowFirst["banner"], 
-                release_date: Date(timeIntervalSince1970: rowFirst["startAt"] / 1000), 
-                episodes: [])
-            
+            let group = VirtualLiveSetlist(id: rowFirst["id"],
+                                           name: [:],
+                                           description: [:],
+                                           resource_name: rowFirst["banner"],
+                                           release_date: Date(timeIntervalSince1970: rowFirst["startAt"] / 1000),
+                                           episodes: [])
+
             group.episodes = rows.map { row in
                 if ["mc", "mc_timeline", "virtual_message"].contains(row["virtualLiveSetlistType"]) {
                     return .script(Episode(id: 0, script: row["epSId"], name: [:], seqno: row["seq"], characters: [], voice_bnd: "vlmc/\(row["epSId"]!)", se_bnd: nil))
@@ -71,7 +71,7 @@ extension MasterDataService /* Virtual Live */ {
                 }
             }
 
-            let characters = try Row.fetchAll(try db.makeStatement(literal: """
+            let characters = try Row.fetchAll(db.makeStatement(literal: """
                 SELECT musicVocals.id, musicVocals.musicId, musicVocalType, 
                     json_group_array(json_object('id', characterId, 'unit', 0)) AS charbnd
                 FROM musicVocals
@@ -89,7 +89,7 @@ extension MasterDataService /* Virtual Live */ {
             return group
         }
 
-        guard var setlist = setlist else {
+        guard var setlist else {
             return nil
         }
 
@@ -100,7 +100,7 @@ extension MasterDataService /* Virtual Live */ {
             for p in needBroadcastMusicTitles[key, default: []] {
                 p.music_title = value.name
                 for (lang, fp) in value.description {
-                    guard let fp = fp else {
+                    guard let fp else {
                         continue
                     }
 

@@ -4,7 +4,7 @@ import PackageDescription
 let package = Package(
     name: "ginko",
     platforms: [
-       .macOS(.v13)
+        .macOS(.v13),
     ],
     dependencies: [
         // 💧 A server-side Swift web framework.
@@ -12,7 +12,7 @@ let package = Package(
         // 🔵 Non-blocking, event-driven networking for Swift. Used for custom executors
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.65.0"),
         .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.10.0"),
-        .package(url: "https://github.com/ileitch/swift-filename-matcher.git", from: "2.0.1")
+        .package(url: "https://github.com/ileitch/swift-filename-matcher.git", from: "2.0.1"),
     ],
     targets: [
         .executableTarget(
@@ -23,9 +23,9 @@ let package = Package(
                 .product(name: "NIOPosix", package: "swift-nio"),
                 .product(name: "GRDB", package: "GRDB.swift"),
                 .product(name: "GRDBSQLite", package: "GRDB.swift"),
-                .product(name: "FilenameMatcher", package: "swift-filename-matcher")
+                .product(name: "FilenameMatcher", package: "swift-filename-matcher"),
             ],
-            swiftSettings: swiftSettings
+            swiftSettings: swiftSettings,
         ),
         .testTarget(
             name: "ginkoTests",
@@ -33,11 +33,13 @@ let package = Package(
                 .target(name: "ginko"),
                 .product(name: "VaporTesting", package: "vapor"),
             ],
-            swiftSettings: swiftSettings
-        )
-    ]
+            swiftSettings: swiftSettings,
+        ),
+    ],
 )
 
-var swiftSettings: [SwiftSetting] { [
-    .enableUpcomingFeature("ExistentialAny"),
-] }
+var swiftSettings: [SwiftSetting] {
+    [
+        .enableUpcomingFeature("ExistentialAny"),
+    ]
+}

@@ -36,23 +36,23 @@ struct IncomingSearchQuery: Decodable {
 struct ScriptController: RouteCollection {
     func boot(routes: any RoutesBuilder) throws {
         let pfx = routes.grouped("api", "v1", "story")
-        
-        pfx.group("script") { script in 
-            script.group(":id") { id in 
+
+        pfx.group("script") { script in
+            script.group(":id") { id in
                 id.get("languages.json", use: readScriptLanguages)
             }
             script.get(":id", use: readScript)
         }
 
         pfx.group("search") { search in
-            search.on(.OPTIONS, "results.json") { req in
+            search.on(.OPTIONS, "results.json") { _ in
                 Response(status: .noContent, headers: [
                     "Access-Control-Allow-Methods": "POST, OPTIONS",
                     "Access-Control-Allow-Headers": "Content-Type",
                     "Access-Control-Max-Age": "3600",
                 ], body: .empty)
             }
-            search.post("results.json", use: performSearch)            
+            search.post("results.json", use: performSearch)
         }
     }
 
@@ -101,13 +101,13 @@ struct ScriptController: RouteCollection {
         queryParams.lang = params.lang
 
         if let storyType = params.story_type {
-            switch (storyType) {
-                case .array(let strings):
-                    if strings.count > 0 {
-                        queryParams.story_type = strings
-                    }
-                case .single(let string):
-                    queryParams.story_type = [string]
+            switch storyType {
+            case let .array(strings):
+                if strings.count > 0 {
+                    queryParams.story_type = strings
+                }
+            case let .single(string):
+                queryParams.story_type = [string]
             }
         }
 
@@ -115,11 +115,11 @@ struct ScriptController: RouteCollection {
             guard pattern.firstMatch(of: /^[\*a-z0-9_-]+$/) != nil else {
                 return error("'script_name_pattern' is not valid", status: .badRequest)
             }
-            
+
             guard pattern.firstMatch(of: /\*{2,}/) != nil else {
                 return error("'script_name_pattern' is not valid", status: .badRequest)
             }
-            
+
             queryParams.script_name_pattern = pattern
             isQueryNarrowEnough = true
         }
@@ -136,7 +136,7 @@ struct ScriptController: RouteCollection {
             isQueryNarrowEnough = true
         }
 
-        if queryParams.speaker_name != nil && queryParams.speaker != nil {
+        if queryParams.speaker_name != nil, queryParams.speaker != nil {
             return error("'speaker' and 'speaker_name' cannot both be in the query", status: .badRequest)
         }
 
@@ -160,13 +160,13 @@ struct ScriptController: RouteCollection {
 
         let scriptService = ScriptService()
         let (results, hasMore) = try scriptService.performSearch(queryParams)
-        
+
         guard !results.isEmpty else {
             return error("No results.", status: .notFound)
         }
 
-        let overallPageID = results.map { $0.page_id }.min()!
+        let overallPageID = results.map(\.page_id).min()!
         let response = SearchResponse(results: results, page_id: overallPageID, has_more: hasMore)
-        return Response(status: .ok, headers: standardHeaders(), body: Response.Body(data: try jsonEncoder().encode(response)))
+        return try Response(status: .ok, headers: standardHeaders(), body: Response.Body(data: jsonEncoder().encode(response)))
     }
 }

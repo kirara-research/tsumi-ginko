@@ -1,5 +1,5 @@
-import GRDB
 import Foundation
+import GRDB
 
 struct MySEKAITalkFilter {
     var character_id: CanonID?
@@ -22,7 +22,8 @@ class MySEKAITalkService {
     }
 
     func listMySEKAITalk(matching filter: MySEKAITalkFilter, after: Int?, maxCount count: Int) throws
-        -> ([MySEKAITalk], [Int:LocalizedString], Bool) {
+        -> ([MySEKAITalk], [Int: LocalizedString], Bool)
+    {
         var clauses = [SQL]()
         var offset = after
         if offset == nil {
@@ -31,21 +32,21 @@ class MySEKAITalkService {
                     let path = "$.\(only_region)"
                     clauses.append("json_extract(mysekai_cache_v4.script_preview, \(path)) IS NOT NULL")
                 } else {
-                    offset = 999999999
+                    offset = 999_999_999
                 }
             } else {
-                offset = 999999999
+                offset = 999_999_999
             }
         }
 
-        if let offset = offset {
+        if let offset {
             clauses.append("mysekai_cache_v4.talk_id < \(offset)")
         }
 
         if let character_id = filter.character_id {
             clauses.append("(assoc_character_v2.assoc_canon_id & 0xffffff) = \(character_id)")
         }
-        
+
         if let fixture_type = filter.fixture_type {
             clauses.append("mysekai_furniture_cache_v1.furniture_type = \(fixture_type)")
         } else if let fixture = filter.fixture {
@@ -65,7 +66,7 @@ class MySEKAITalkService {
         }
 
         var (talks, hasMore) = try dbQueue.read { db in
-            var rows = try Row.fetchAll(try db.makeStatement(literal: """
+            var rows = try Row.fetchAll(db.makeStatement(literal: """
                 WITH character_cache AS (
                     SELECT assoc_character_v2.entity_id, json_group_array(
                         json_object(
@@ -100,31 +101,31 @@ class MySEKAITalkService {
 
             let decoder = JSONDecoder()
             return (rows.map { row in
-                var sn: LocalizedString? = nil 
+                var sn: LocalizedString? = nil
                 if let snippetbnd: Data = row["script_preview"] {
                     sn = try! decoder.decode(LocalizedString.self, from: snippetbnd)
                 }
-                return MySEKAITalk(id: row["talk_id"], 
-                    script: row["id"], 
-                    name: [:], 
-                    seqno: 0, 
-                    characters: try! decoder.decode([UnitAssociatedCharacter].self, from: row["ccbnd"]), 
-                    voice_bnd: "mys/\(row["id"]!)", 
-                    se_bnd: nil, 
-                    event_id: row["assoc_event"], 
-                    snippet: sn, 
-                    conditions: try! decoder.decode(MySEKAITalk.Conditions.self, from: row["condition_list"]), 
-                    event_title: nil)
+                return MySEKAITalk(id: row["talk_id"],
+                                   script: row["id"],
+                                   name: [:],
+                                   seqno: 0,
+                                   characters: try! decoder.decode([UnitAssociatedCharacter].self, from: row["ccbnd"]),
+                                   voice_bnd: "mys/\(row["id"]!)",
+                                   se_bnd: nil,
+                                   event_id: row["assoc_event"],
+                                   snippet: sn,
+                                   conditions: try! decoder.decode(MySEKAITalk.Conditions.self, from: row["condition_list"]),
+                                   event_title: nil)
             }, hasMore)
         }
 
-        if (talks.isEmpty) {
+        if talks.isEmpty {
             return ([], [:], false)
         }
 
         var fixIDs: Set<Int> = Set()
         for t in talks {
-            fixIDs.formUnion(t.conditions.furniture.map { $0.id })
+            fixIDs.formUnion(t.conditions.furniture.map(\.id))
         }
         try insertExtraInfo(into: &talks)
         let fixNames = try stringService.getGroupTitles(forEntities: [Int](fixIDs), inDomain: "mysekai_fixture")
@@ -132,8 +133,8 @@ class MySEKAITalkService {
     }
 
     func getMySEKAITalk(id: Int) throws -> (MySEKAITalk, [MySEKAITalk], [Int: LocalizedString])? {
-        let main: MySEKAITalk? = try dbQueue.read { db -> MySEKAITalk? in 
-            let row = try Row.fetchOne(try db.makeStatement(literal: """
+        let main: MySEKAITalk? = try dbQueue.read { db -> MySEKAITalk? in
+            let row = try Row.fetchOne(db.makeStatement(literal: """
                 WITH character_cache AS (
                     SELECT assoc_character_v2.entity_id, json_group_array(
                         json_object(
@@ -160,13 +161,13 @@ class MySEKAITalkService {
                 WHERE mysekai_cache_v4.talk_id = \(id)
             """))
 
-            guard let row = row else {
+            guard let row else {
                 return nil
             }
 
             let decoder = JSONDecoder()
 
-            var sn: LocalizedString? = nil 
+            var sn: LocalizedString? = nil
             if let snippetbnd: Data = row["script_preview"] {
                 sn = try! decoder.decode(LocalizedString.self, from: snippetbnd)
             }
@@ -175,33 +176,34 @@ class MySEKAITalkService {
                 et = try! decoder.decode(LocalizedString.self, from: namebnd)
             }
 
-            return MySEKAITalk(id: row["talk_id"], 
-                script: row["id"], 
-                name: [:], 
-                seqno: 0, 
-                characters: try! decoder.decode([UnitAssociatedCharacter].self, from: row["ccbnd"]), 
-                voice_bnd: "mys/\(row["id"]!)", 
-                se_bnd: nil, 
-                event_id: row["assoc_event"], 
-                snippet: sn, 
-                conditions: try! decoder.decode(MySEKAITalk.Conditions.self, from: row["condition_list"]), 
-                event_title: et)
+            return MySEKAITalk(id: row["talk_id"],
+                               script: row["id"],
+                               name: [:],
+                               seqno: 0,
+                               characters: try! decoder.decode([UnitAssociatedCharacter].self, from: row["ccbnd"]),
+                               voice_bnd: "mys/\(row["id"]!)",
+                               se_bnd: nil,
+                               event_id: row["assoc_event"],
+                               snippet: sn,
+                               conditions: try! decoder.decode(MySEKAITalk.Conditions.self, from: row["condition_list"]),
+                               event_title: et)
         }
 
-        guard let main = main else {
+        guard let main else {
             return nil
         }
 
         var haveRelated = false
-        var relatedFilter: MySEKAITalkFilter = MySEKAITalkFilter(
-            character_id: nil, 
-            fixture_type: nil, 
+        var relatedFilter = MySEKAITalkFilter(
+            character_id: nil,
+            fixture_type: nil,
             fixture: nil,
-            event: nil, 
-            event_related: nil, 
-            weather_related: nil, 
-            visits_related: nil, 
-            only_region: nil)
+            event: nil,
+            event_related: nil,
+            weather_related: nil,
+            visits_related: nil,
+            only_region: nil,
+        )
         if !main.conditions.furniture.isEmpty {
             relatedFilter.fixture = main.conditions.furniture.min { $0.id < $1.id }!.id
             haveRelated = true
@@ -222,18 +224,18 @@ class MySEKAITalkService {
         if let i = related.firstIndex(where: { $0.id == main.id }) {
             related.remove(at: i)
         } else {
-            let fixIDs: Set<Int> = Set(main.conditions.furniture.map { $0.id })
+            let fixIDs: Set<Int> = Set(main.conditions.furniture.map(\.id))
             let myFixNames = try stringService.getGroupTitles(forEntities: [Int](fixIDs), inDomain: "mysekai_fixture")
             for key in myFixNames.keys {
                 fixNames[key] = myFixNames[key]?.name
             }
         }
-        
+
         return (main, related, fixNames)
     }
 
-    fileprivate func insertExtraInfo(into talks: inout [MySEKAITalk]) throws {
-        let needEventIDs = talks.compactMap { $0.event_id }
+    private func insertExtraInfo(into talks: inout [MySEKAITalk]) throws {
+        let needEventIDs = talks.compactMap(\.event_id)
         let etdict = try stringService.getGroupTitles(forEntities: needEventIDs, inDomain: "event")
         for t in talks {
             if let eid = t.event_id, let gt = etdict[eid] {

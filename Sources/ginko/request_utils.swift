@@ -1,7 +1,8 @@
 import Vapor
+
 extension RouteCollection {
     func standardHeaders() -> HTTPHeaders {
-        return [
+        [
             "Content-Type": "application/json; charset=utf-8",
             "Tsumi-Master-Version": MasterDataService().getVersion(),
         ]
@@ -22,16 +23,17 @@ extension RouteCollection {
 
 extension String {
     func removing(suffix: String) -> String {
-        if !self.hasSuffix(suffix) {
+        if !hasSuffix(suffix) {
             return self
         }
-        return String(self[...self.index(self.endIndex, offsetBy: -(suffix.count + 1))])
+        return String(self[...index(endIndex, offsetBy: -(suffix.count + 1))])
     }
 }
 
 protocol FromString {
     init?(_ string: String)
 }
+
 extension Int: FromString {}
 extension String: FromString {}
 extension URLQueryContainer {
@@ -43,6 +45,6 @@ extension URLQueryContainer {
         let arr: [T?] = v.components(separatedBy: ",")
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .map { T($0) }
-        return arr.compactMap { $0 }
+        return arr.compactMap(\.self)
     }
 }

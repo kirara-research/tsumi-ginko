@@ -1,5 +1,5 @@
-import GRDB
 import Foundation
+import GRDB
 
 struct CardFilter: Codable {
     var character_id: CanonID?
@@ -10,7 +10,7 @@ struct CardFilter: Codable {
     var only_region: String?
 }
 
-fileprivate struct _CardEpList: Codable {
+private struct _CardEpList: Codable {
     let script: String
     let seq: Int
 }
@@ -23,10 +23,10 @@ extension MasterDataService /* Cards */ {
                 if only_region != CanonicalLang {
                     offset = try stringService.latestTranslatedEntity(forLang: only_region, inDomain: "card") + 1
                 } else {
-                    offset = 999999999
+                    offset = 999_999_999
                 }
             } else {
-                offset = 999999999
+                offset = 999_999_999
             }
         }
 
@@ -38,29 +38,29 @@ extension MasterDataService /* Cards */ {
         }
 
         if let attribute = query.attribute {
-            switch (attribute) {
-                case .single(let t):
-                    clauses.append(SQL("cards.attr = \(String(describing: t))"))
-                case .array(let t):
-                    clauses.append(SQL("cards.attr IN \(t.map { String(describing: $0) })"))
+            switch attribute {
+            case let .single(t):
+                clauses.append(SQL("cards.attr = \(String(describing: t))"))
+            case let .array(t):
+                clauses.append(SQL("cards.attr IN \(t.map { String(describing: $0) })"))
             }
         }
 
         if let rarity = query.rarity {
-            switch (rarity) {
-                case .single(let t):
-                    clauses.append(SQL("cards.cardRarityType = \(String(describing: t))"))
-                case .array(let t):
-                    clauses.append(SQL("cards.cardRarityType IN \(t.map { String(describing: $0) })"))
+            switch rarity {
+            case let .single(t):
+                clauses.append(SQL("cards.cardRarityType = \(String(describing: t))"))
+            case let .array(t):
+                clauses.append(SQL("cards.cardRarityType IN \(t.map { String(describing: $0) })"))
             }
         }
 
         if let availability = query.availability {
-            switch (availability) {
-                case .single(let t):
-                    clauses.append(SQL("cards.cardSupplyId = \(t.rawValue)"))
-                case .array(let t):
-                    clauses.append(SQL("cards.cardSupplyId IN \(t.map { $0.rawValue })"))
+            switch availability {
+            case let .single(t):
+                clauses.append(SQL("cards.cardSupplyId = \(t.rawValue)"))
+            case let .array(t):
+                clauses.append(SQL("cards.cardSupplyId IN \(t.map(\.rawValue))"))
             }
         }
 
@@ -69,7 +69,7 @@ extension MasterDataService /* Cards */ {
         }
 
         var (cardBundles, hasMore) = try dbQueue.read { db in
-            var rows = try Row.fetchAll(try db.makeStatement(literal: """
+            var rows = try Row.fetchAll(db.makeStatement(literal: """
                 SELECT cardEpisodes.cardId, json_group_array(json_object('script', cardEpisodes.scenarioId, 'seq', cardEpisodes.seq)) AS epBnd,
                 cards.assetbundleName, cards.characterId, 
                 cards.cardRarityType, cards.supportUnit, cards.attr, cards.releaseAt,
@@ -83,7 +83,7 @@ extension MasterDataService /* Cards */ {
                 WHERE \(clauses.joined(operator: .and))
                 GROUP BY cardEpisodes.cardId
                 ORDER BY cards.id DESC, cardEpisodes.seq
-                LIMIT \((maxCount) + 1)
+                LIMIT \(maxCount + 1)
             """))
             var hasMore = false
             if rows.count > maxCount {
@@ -91,30 +91,30 @@ extension MasterDataService /* Cards */ {
                 _ = rows.popLast()
             }
 
-            return (rows.map { row in 
+            return (rows.map { row in
                 let eps = try! JSONDecoder().decode([_CardEpList].self, from: row["epBnd"])
-                return CardStoryGroup(id: row["cardId"], 
-                    name: LocalizedString(), 
-                    resource_name: row["assetbundleName"], 
-                    release_date: Date(timeIntervalSince1970: row["releaseAt"] / 1000), 
-                    episodes: eps.map {
-                        Episode(id: 0, 
-                            script: $0.script, 
-                            name: [:], 
-                            seqno: $0.seq, 
-                            characters: [], 
-                            voice_bnd: "card_scenario/\($0.script)", 
-                            se_bnd: nil) 
-                    }, 
-                    character_id: row["characterId"], 
-                    rarity: .fromMasterRepresentation(row["cardRarityType"]), 
-                    attribute: .fromMasterRepresentation(row["attr"]), 
-                    vs_affinity: .fromMasterRepresentation(row["supportUnit"]), 
-                    idolization: row["hasSpecialIdlz"]
-                        ? (row["initialSpecialTrainingStatus"] == "not_doing" ? .notIdolizable : .preIdolized)
-                        : .idolizable, 
-                    event_id: row["evtStoryId"], 
-                    event_title: [:])
+                return CardStoryGroup(id: row["cardId"],
+                                      name: LocalizedString(),
+                                      resource_name: row["assetbundleName"],
+                                      release_date: Date(timeIntervalSince1970: row["releaseAt"] / 1000),
+                                      episodes: eps.map {
+                                          Episode(id: 0,
+                                                  script: $0.script,
+                                                  name: [:],
+                                                  seqno: $0.seq,
+                                                  characters: [],
+                                                  voice_bnd: "card_scenario/\($0.script)",
+                                                  se_bnd: nil)
+                                      },
+                                      character_id: row["characterId"],
+                                      rarity: .fromMasterRepresentation(row["cardRarityType"]),
+                                      attribute: .fromMasterRepresentation(row["attr"]),
+                                      vs_affinity: .fromMasterRepresentation(row["supportUnit"]),
+                                      idolization: row["hasSpecialIdlz"]
+                                          ? (row["initialSpecialTrainingStatus"] == "not_doing" ? .notIdolizable : .preIdolized)
+                                          : .idolizable,
+                                      event_id: row["evtStoryId"],
+                                      event_title: [:])
             }, hasMore)
         }
 
@@ -122,9 +122,9 @@ extension MasterDataService /* Cards */ {
         return (cardBundles, hasMore)
     }
 
-    func getCards(matchingIDs: [CardID], includingEventInfo includeEvent: Bool) throws -> [CardStoryGroup] {
+    func getCards(matchingIDs: [CardID], includingEventInfo _: Bool) throws -> [CardStoryGroup] {
         var cardBundles = try dbQueue.read { db in
-            let rows = try Row.fetchAll(try db.makeStatement(literal: """
+            let rows = try Row.fetchAll(db.makeStatement(literal: """
                 SELECT cardEpisodes.cardId, json_group_array(json_object('script', cardEpisodes.scenarioId, 'seq', cardEpisodes.seq)) AS epBnd,
                 cards.assetbundleName, cards.characterId, 
                 cards.cardRarityType, cards.supportUnit, cards.attr, cards.releaseAt,
@@ -140,30 +140,30 @@ extension MasterDataService /* Cards */ {
                 ORDER BY cards.id, cardEpisodes.seq
             """))
 
-            return rows.map { row in 
+            return rows.map { row in
                 let eps = try! JSONDecoder().decode([_CardEpList].self, from: row["epBnd"])
-                return CardStoryGroup(id: row["cardId"], 
-                    name: LocalizedString(), 
-                    resource_name: row["assetbundleName"], 
-                    release_date: Date(timeIntervalSince1970: row["releaseAt"] / 1000), 
-                    episodes: eps.map {
-                        Episode(id: 0, 
-                            script: $0.script, 
-                            name: [:], 
-                            seqno: $0.seq, 
-                            characters: [], 
-                            voice_bnd: "card_scenario/\($0.script)", 
-                            se_bnd: nil) 
-                    }, 
-                    character_id: row["characterId"], 
-                    rarity: .fromMasterRepresentation(row["cardRarityType"]), 
-                    attribute: .fromMasterRepresentation(row["attr"]), 
-                    vs_affinity: .fromMasterRepresentation(row["supportUnit"]), 
-                    idolization: row["hasSpecialIdlz"]
-                        ? (row["initialSpecialTrainingStatus"] == "not_doing" ? .notIdolizable : .preIdolized)
-                        : .idolizable, 
-                    event_id: row["evtStoryId"], 
-                    event_title: [:])
+                return CardStoryGroup(id: row["cardId"],
+                                      name: LocalizedString(),
+                                      resource_name: row["assetbundleName"],
+                                      release_date: Date(timeIntervalSince1970: row["releaseAt"] / 1000),
+                                      episodes: eps.map {
+                                          Episode(id: 0,
+                                                  script: $0.script,
+                                                  name: [:],
+                                                  seqno: $0.seq,
+                                                  characters: [],
+                                                  voice_bnd: "card_scenario/\($0.script)",
+                                                  se_bnd: nil)
+                                      },
+                                      character_id: row["characterId"],
+                                      rarity: .fromMasterRepresentation(row["cardRarityType"]),
+                                      attribute: .fromMasterRepresentation(row["attr"]),
+                                      vs_affinity: .fromMasterRepresentation(row["supportUnit"]),
+                                      idolization: row["hasSpecialIdlz"]
+                                          ? (row["initialSpecialTrainingStatus"] == "not_doing" ? .notIdolizable : .preIdolized)
+                                          : .idolizable,
+                                      event_id: row["evtStoryId"],
+                                      event_title: [:])
             }
         }
 
@@ -171,8 +171,8 @@ extension MasterDataService /* Cards */ {
         return cardBundles
     }
 
-    fileprivate func insertExtraInfo(into cardBundles: inout [CardStoryGroup]) throws {
-        let haveCardIds = cardBundles.map { $0.id }
+    private func insertExtraInfo(into cardBundles: inout [CardStoryGroup]) throws {
+        let haveCardIds = cardBundles.map(\.id)
         let names = try stringService.getGroupTitles(forEntities: haveCardIds, inDomain: "card")
         cardBundles.applyGroupTitles(names)
 
@@ -187,7 +187,7 @@ extension MasterDataService /* Cards */ {
                 }
             }
             if let sl = episodeChars[card.id] {
-                for jdx in 0..<card.episodes.count {
+                for jdx in 0 ..< card.episodes.count {
                     for s in sl {
                         if s.script == card.episodes[jdx].script {
                             card.episodes[jdx].characters = s.characters

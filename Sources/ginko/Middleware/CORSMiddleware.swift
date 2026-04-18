@@ -1,6 +1,6 @@
-import Vapor
-import Foundation
 import FilenameMatcher
+import Foundation
+import Vapor
 
 final class TsumiCORSMiddleware: Middleware, @unchecked Sendable {
     let patterns: [FilenameMatcher]
@@ -22,7 +22,7 @@ final class TsumiCORSMiddleware: Middleware, @unchecked Sendable {
                     }
                 }
             }
-            
+
             response.headers.add(name: "Tsumi-Backend-ID", value: "ginko")
             return response
         }

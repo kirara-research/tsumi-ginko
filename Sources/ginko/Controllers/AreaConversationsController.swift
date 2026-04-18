@@ -4,6 +4,7 @@ struct AreaConversationListResponse: Codable {
     let area_conversations: [AreaConversation]
     let page_id: Int?
 }
+
 struct AreaConversationResponse: Codable {
     let area_conversation: AreaConversation
     let related_area_conversation: [AreaConversation]
@@ -36,19 +37,20 @@ struct AreaConversationsController: RouteCollection {
             filter.only_region = only_region
         }
 
-        var count: Int
-        if let reqCount: Int = req.query["count"] {
-            count = min(reqCount, 24)
+        let count: Int = if let reqCount: Int = req.query["count"] {
+            min(reqCount, 24)
         } else {
-            count = 24
+            24
         }
 
         let (convs, hasMore) = try MasterDataService().listAreaConversations(
-            matching: filter, after: req.query["after"], maxCount: count)
-        let overallPageID = hasMore ? convs.min { $0.id < $1.id }.flatMap { $0.id } : nil
+            matching: filter, after: req.query["after"], maxCount: count,
+        )
+        let overallPageID = hasMore ? convs.min { $0.id < $1.id }.flatMap(\.id) : nil
 
         return Response(status: .ok, headers: standardHeaders(), body: Response.Body(
-            data: try! jsonEncoder().encode(AreaConversationListResponse(area_conversations: convs, page_id: overallPageID))))
+            data: try! jsonEncoder().encode(AreaConversationListResponse(area_conversations: convs, page_id: overallPageID)),
+        ))
     }
 
     func areaConvSingle(req: Request) async throws -> Response {
@@ -64,8 +66,9 @@ struct AreaConversationsController: RouteCollection {
         guard let (primary, related) = try MasterDataService().getAreaConversations(relatedTo: convID) else {
             return error("Not found", status: .notFound)
         }
-    
+
         return Response(status: .ok, headers: standardHeaders(), body: Response.Body(
-            data: try! jsonEncoder().encode(AreaConversationResponse(area_conversation: primary, related_area_conversation: related))))
+            data: try! jsonEncoder().encode(AreaConversationResponse(area_conversation: primary, related_area_conversation: related)),
+        ))
     }
 }

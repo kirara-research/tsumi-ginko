@@ -18,6 +18,7 @@ enum EpisodeType: Int, Codable {
     case script = 1
     case music = 2
 }
+
 class Episode: Codable, GroupTitleAccepting {
     var id: Int
     var script: String
@@ -35,7 +36,7 @@ class Episode: Codable, GroupTitleAccepting {
         seqno: Int,
         characters: [UnitAssociatedCharacter],
         voice_bnd: String?,
-        se_bnd: String?
+        se_bnd: String?,
     ) {
         self.id = id
         self.script = script
@@ -71,7 +72,7 @@ class AreaConversation: Codable {
         se_bnd: String?,
         location: Int,
         primary_character: CanonID,
-        primary_group: Int
+        primary_group: Int,
     ) {
         self.id = id
         self.script = script
@@ -95,7 +96,7 @@ class MusicPerformance: Codable {
 
     var music_title: LocalizedString
     var music_lyricist: LocalizedString
-    var music_composer: LocalizedString 
+    var music_composer: LocalizedString
     var music_arranger: LocalizedString
     var characters: [UnitAssociatedCharacter]
 
@@ -110,11 +111,11 @@ class MusicPerformance: Codable {
         self.music_vocal = music_vocal
         self.seqno = seqno
 
-        self.music_title = [:]
-        self.music_lyricist = [:]
-        self.music_composer = [:] 
-        self.music_arranger = [:]
-        self.characters = []
+        music_title = [:]
+        music_lyricist = [:]
+        music_composer = [:]
+        music_arranger = [:]
+        characters = []
     }
 }
 
@@ -157,7 +158,7 @@ class MySEKAITalk: Codable, GroupTitleAccepting {
         event_id: EventID?,
         snippet: LocalizedString?,
         conditions: Conditions,
-        event_title: LocalizedString?
+        event_title: LocalizedString?,
     ) {
         self.id = id
         self.script = script
@@ -191,7 +192,7 @@ class UnitStoryGroup: Codable, GroupTitleAndDescriptionAccepting {
         name: LocalizedString,
         description: LocalizedString,
         episodes: [Episode],
-        group_relevance: [String: RelevanceType]
+        group_relevance: [String: RelevanceType],
     ) {
         self.id = id
         self.name = name
@@ -247,7 +248,7 @@ class EventStoryGroup: Codable, GroupTitleAndDescriptionAccepting {
         release_date: Date,
         episodes: [Episode],
         group_relevance: [String: RelevanceType],
-        assoc_cards: [CardStoryGroup]
+        assoc_cards: [CardStoryGroup],
     ) {
         self.id = id
         self.name = name
@@ -310,7 +311,7 @@ class CardStoryGroup: Codable, GroupTitleAccepting {
         vs_affinity: CardUnit?,
         idolization: IdolizationType,
         event_id: EventID?,
-        event_title: LocalizedString?
+        event_title: LocalizedString?,
     ) {
         self.id = id
         self.name = name
@@ -343,23 +344,24 @@ enum VirtualLiveSegment: Codable {
             throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "wrong type id"))
         }
 
-        switch (type) {
-            case .music:
-                self = .music(try MusicPerformance(from: decoder))
-            case .script:
-                self = .script(try Episode(from: decoder))
+        switch type {
+        case .music:
+            self = try .music(MusicPerformance(from: decoder))
+        case .script:
+            self = try .script(Episode(from: decoder))
         }
     }
 
     func encode(to encoder: any Encoder) throws {
-        switch(self) {
-            case .music(let val):
-                try val.encode(to: encoder)
-            case .script(let val):
-                try val.encode(to: encoder)
+        switch self {
+        case let .music(val):
+            try val.encode(to: encoder)
+        case let .script(val):
+            try val.encode(to: encoder)
         }
     }
 }
+
 class VirtualLiveSetlist: Codable, GroupTitleAccepting {
     enum CodingKeys: String, CodingKey {
         case id
@@ -370,13 +372,14 @@ class VirtualLiveSetlist: Codable, GroupTitleAccepting {
         case episodes
         case group_relevance
     }
+
     var id: Int
-    var name: LocalizedString 
-    var description: LocalizedString 
+    var name: LocalizedString
+    var description: LocalizedString
     var resource_name: String
     var release_date: Date
     var episodes: [VirtualLiveSegment]
-    // to be removed, but check whether tsumi requires a dict to exist here first
+    /// to be removed, but check whether tsumi requires a dict to exist here first
     var group_relevance: [String: RelevanceType] = [:]
 
     init(

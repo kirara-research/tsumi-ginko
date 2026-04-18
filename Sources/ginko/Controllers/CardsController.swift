@@ -15,13 +15,13 @@ struct CardsController: RouteCollection {
 
     func cardList(req: Request) async throws -> Response {
         var filter = CardFilter()
-        
+
         if let unit: String = req.query["unit"] {
             if let unit = CardUnit(rawValue: unit) {
                 filter.unit = unit
             } else {
                 return error("unit is invalid", status: .badRequest)
-            } 
+            }
         }
 
         if let attribute: [CardAttribute] = req.query.getCommaSeparatedValues(forKey: "attribute")?.compactMap({ CardAttribute(rawValue: $0) }) {
@@ -44,19 +44,20 @@ struct CardsController: RouteCollection {
             filter.only_region = only_region
         }
 
-        var count: Int
-        if let reqCount: Int = req.query["count"] {
-            count = min(reqCount, 24)
+        let count: Int = if let reqCount: Int = req.query["count"] {
+            min(reqCount, 24)
         } else {
-            count = 24
+            24
         }
 
         let (cards, hasMore) = try MasterDataService().listCards(
-            matching: filter, after: req.query["after"], maxCount: count)
-        let overallPageID = hasMore ? cards.min { $0.id < $1.id }.flatMap { $0.id } : nil
+            matching: filter, after: req.query["after"], maxCount: count,
+        )
+        let overallPageID = hasMore ? cards.min { $0.id < $1.id }.flatMap(\.id) : nil
 
         return Response(status: .ok, headers: standardHeaders(), body: Response.Body(
-            data: try! jsonEncoder().encode(CardListResponse(cards: cards, page_id: overallPageID))))
+            data: try! jsonEncoder().encode(CardListResponse(cards: cards, page_id: overallPageID)),
+        ))
     }
 
     func cardSingle(req: Request) async throws -> Response {
@@ -73,8 +74,9 @@ struct CardsController: RouteCollection {
         guard !cards.isEmpty else {
             return error("Not found", status: .notFound)
         }
-    
+
         return Response(status: .ok, headers: standardHeaders(), body: Response.Body(
-            data: try! jsonEncoder().encode(cards[0])))
+            data: try! jsonEncoder().encode(cards[0]),
+        ))
     }
 }

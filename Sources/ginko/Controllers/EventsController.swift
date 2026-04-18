@@ -8,11 +8,11 @@ struct EventsController: RouteCollection {
         pfx.get("events", ":id", use: eventCollection)
     }
 
-    func eventList(req: Request) async throws -> Response {
+    func eventList(req _: Request) async throws -> Response {
         let eventStories = try MasterDataService().listEventStories()
 
         return Response(status: .ok, headers: standardHeaders(),
-            body: Response.Body(data: try! jsonEncoder().encode(eventStories)))
+                        body: Response.Body(data: try! jsonEncoder().encode(eventStories)))
     }
 
     func eventCollection(req: Request) async throws -> Response {
@@ -26,11 +26,11 @@ struct EventsController: RouteCollection {
         }
 
         let eventCollection = try MasterDataService().collection(forEvent: eventID)
-        guard let eventCollection = eventCollection else {
+        guard let eventCollection else {
             return error("Not found", status: .notFound)
         }
-    
-        return Response(status: .ok, headers: standardHeaders(), 
-            body: Response.Body(data: try! jsonEncoder().encode(eventCollection)))
+
+        return Response(status: .ok, headers: standardHeaders(),
+                        body: Response.Body(data: try! jsonEncoder().encode(eventCollection)))
     }
 }

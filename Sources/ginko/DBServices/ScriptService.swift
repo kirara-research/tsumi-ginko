@@ -1,5 +1,5 @@
-import GRDB
 import Foundation
+import GRDB
 
 struct LangID: Codable, FetchableRecord {
     let lang: String
@@ -35,10 +35,10 @@ struct Line: Codable, FetchableRecord {
 
         func encode(to encoder: any Encoder) throws {
             var container = encoder.singleValueContainer()
-            switch (self) {
-            case .int(let intValue): 
+            switch self {
+            case let .int(intValue):
                 try container.encode(intValue)
-            case .float(let floatValue): 
+            case let .float(floatValue):
                 try container.encode(floatValue)
             }
         }
@@ -47,7 +47,7 @@ struct Line: Codable, FetchableRecord {
 
 struct Script: Codable {
     static func empty(id: String, langs: [String]) -> Script {
-        return Script(id: id, lang: nil, source: nil, lines: [], available_languages: langs)
+        Script(id: id, lang: nil, source: nil, lines: [], available_languages: langs)
     }
 
     let id: String
@@ -82,7 +82,7 @@ struct SearchResult: Codable {
         let ref: Int
 
         init(general_order: Int, ref: Int) {
-            self.general_order = general_order 
+            self.general_order = general_order
             self.ref = ref
         }
 
@@ -97,7 +97,7 @@ struct SearchResult: Codable {
         }
 
         static func == (lhs: SearchResult.PageID, rhs: SearchResult.PageID) -> Bool {
-            return lhs.general_order == rhs.general_order && lhs.ref == rhs.ref
+            lhs.general_order == rhs.general_order && lhs.ref == rhs.ref
         }
 
         func encode(to encoder: any Encoder) throws {
@@ -110,7 +110,7 @@ struct SearchResult: Codable {
             let s = try container.decode(String.self)
             let ints = s.components(separatedBy: ",").map { Int($0) }
 
-            guard ints.count == 2 && ints[0] != nil && ints[1] != nil else {
+            guard ints.count == 2, ints[0] != nil, ints[1] != nil else {
                 throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "Expected two numbers"))
             }
 
@@ -197,8 +197,8 @@ class ScriptService {
         """
     }
 
-    func listScriptLangIDs(forScript script_id: String) throws -> [LangID]  {
-        try dbQueue.read { db in 
+    func listScriptLangIDs(forScript script_id: String) throws -> [LangID] {
+        try dbQueue.read { db in
             try LangID.fetchAll(db, sql: """
                 SELECT script_source_v1.lang, chapter_title_v1.title FROM script_source_v1
                 LEFT JOIN script ON script_source_v1.script_grp_id = script.ref
@@ -210,13 +210,13 @@ class ScriptService {
     }
 
     func readScript(id script_id: String, fromRegion lang_id: String) throws -> Script {
-        let langs = try listScriptLangIDs(forScript: script_id).map({ $0.lang })
-        
+        let langs = try listScriptLangIDs(forScript: script_id).map(\.lang)
+
         if !langs.contains(lang_id) {
             return Script.empty(id: script_id, langs: langs)
         }
 
-        let lines = try dbQueue.read { db in 
+        let lines = try dbQueue.read { db in
             try Line.fetchAll(db, sql: """
                 SELECT 
                     seq_no AS line_no, verse_no, speaker, speaker_idspace, speaker_name, 
@@ -230,19 +230,19 @@ class ScriptService {
                 WHERE script.id = ? ORDER BY seq_no
             """, arguments: [lang_id, script_id])
         }
-        
+
         return Script(id: script_id, lang: lang_id, source: "<ginko>", lines: lines, available_languages: langs)
     }
 
     private static func paramList(count: Int) -> String {
-        return [String](repeating: "?", count: count).joined(separator: ", ")
+        [String](repeating: "?", count: count).joined(separator: ", ")
     }
 
     private static func reassembleQuoted(_ words: [String]) -> [String] {
         var buf = [String]()
         var qbuf = [String]()
         var quote = false
-        
+
         for w in words {
             if quote {
                 if w.hasSuffix("\"") {
@@ -262,11 +262,11 @@ class ScriptService {
                 buf.append(w)
             }
         }
-        
+
         if !qbuf.isEmpty {
             buf.append(qbuf.joined(separator: " "))
         }
-        
+
         return buf
     }
 
@@ -296,7 +296,7 @@ class ScriptService {
 
         if let speaker = query.speaker {
             clauses.append(
-                "\(langTable).speaker_idspace = ? AND \(langTable).speaker = ?"
+                "\(langTable).speaker_idspace = ? AND \(langTable).speaker = ?",
             )
             bindings.append(speaker.0)
             bindings.append(speaker.1)
@@ -312,7 +312,7 @@ class ScriptService {
             bindings.append(namepat.replacing("*", with: "%"))
         }
 
-        if let nextpageid = query.after_page_id {            
+        if let nextpageid = query.after_page_id {
             clauses.append("(script.general_order, script.ref) < (?, ?)")
             bindings.append(nextpageid.general_order)
             bindings.append(nextpageid.ref)
@@ -339,10 +339,10 @@ class ScriptService {
 
         var hasNext = false
         var rows = try dbQueue.read { db in
-            let query = usingFT ? ScriptService.SearchQueryBaseWithTextSearch(lang: query.lang) 
+            let query = usingFT ? ScriptService.SearchQueryBaseWithTextSearch(lang: query.lang)
                 : ScriptService.SearchQueryBaseWithoutTextSearch(lang: query.lang)
-            return try Row.fetchAll(db, sql: query.replacing("?params?", with: clauses.joined(by: " AND ")), 
-                arguments: StatementArguments(bindings))
+            return try Row.fetchAll(db, sql: query.replacing("?params?", with: clauses.joined(by: " AND ")),
+                                    arguments: StatementArguments(bindings))
         }
 
         if rows.count > ScriptService.SearchResultsPerPage {
@@ -353,16 +353,17 @@ class ScriptService {
         return (rows.map { row in
             let d = try! JSONDecoder().decode([SearchResultLine].self, from: row["linesbnd"])
             return SearchResult(
-                script_id: row["id"], 
+                script_id: row["id"],
                 lang: query.lang,
-                script_type: row["type"], 
-                group_type: row["group_idspace"], 
-                group_id: row["group_id"], 
-                group_title: row["ch_title"], 
-                episode_title: row["ep_title"], 
-                matches: d, 
+                script_type: row["type"],
+                group_type: row["group_idspace"],
+                group_id: row["group_id"],
+                group_title: row["ch_title"],
+                episode_title: row["ep_title"],
+                matches: d,
                 script_extra_param: row["search_disambiguator"],
-                page_id: SearchResult.PageID(general_order: row["general_order"], ref: row["ref"]))
+                page_id: SearchResult.PageID(general_order: row["general_order"], ref: row["ref"]),
+            )
         }, hasNext)
     }
 }

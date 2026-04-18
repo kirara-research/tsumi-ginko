@@ -7,10 +7,10 @@ struct SpecialsController: RouteCollection {
         pfx.get("specials.json", use: specialStoryList)
     }
 
-    func specialStoryList(req: Request) async throws -> Response {
+    func specialStoryList(req _: Request) async throws -> Response {
         let specialStories = try MasterDataService().listSpecialStories()
 
         return Response(status: .ok, headers: standardHeaders(),
-            body: Response.Body(data: try! jsonEncoder().encode(specialStories)))
+                        body: Response.Body(data: try! jsonEncoder().encode(specialStories)))
     }
 }

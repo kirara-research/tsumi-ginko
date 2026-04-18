@@ -8,11 +8,11 @@ struct VirtualLivesController: RouteCollection {
         pfx.get("virtual_lives", ":id", use: virtualLiveSingle)
     }
 
-    func virtualLiveList(req: Request) async throws -> Response {
+    func virtualLiveList(req _: Request) async throws -> Response {
         let vll = try MasterDataService().listIndependentVirtualLives()
 
         return Response(status: .ok, headers: standardHeaders(),
-            body: Response.Body(data: try! jsonEncoder().encode(vll)))
+                        body: Response.Body(data: try! jsonEncoder().encode(vll)))
     }
 
     func virtualLiveSingle(req: Request) async throws -> Response {
@@ -28,8 +28,8 @@ struct VirtualLivesController: RouteCollection {
         guard let vll = try MasterDataService().getSetlist(forVirtualLive: vliveID) else {
             return error("not found", status: .notFound)
         }
-    
+
         return Response(status: .ok, headers: standardHeaders(),
-            body: Response.Body(data: try! jsonEncoder().encode(vll)))
+                        body: Response.Body(data: try! jsonEncoder().encode(vll)))
     }
 }

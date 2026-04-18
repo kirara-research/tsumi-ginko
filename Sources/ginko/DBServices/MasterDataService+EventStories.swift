@@ -1,10 +1,10 @@
-import GRDB
 import Foundation
+import GRDB
 
 extension MasterDataService /* Events */ {
     func listEventStories() throws -> [EventStoryGroup] {
         var stories = try dbQueue.read { db in
-            let rows = try Row.fetchAll(try db.makeStatement(literal: """
+            let rows = try Row.fetchAll(db.makeStatement(literal: """
                 SELECT eventStories.id, events.assetbundleName, events.startAt,
                     json_group_object(eventStoryUnits.unit, eventStoryUnits.eventStoryUnitRelation) AS grel
                 FROM eventStories
@@ -14,21 +14,20 @@ extension MasterDataService /* Events */ {
                 ORDER BY eventStories.id
             """))
 
-            
-            return rows.map { row in 
+            return rows.map { row in
                 var gr: [String: RelevanceType]? = nil
                 if let groupRelevance: Data = row["grel"] {
                     gr = remapUnitCodes(try! JSONDecoder().decode([String: RelevanceType].self, from: groupRelevance))
                 }
 
-                return EventStoryGroup(id: row["id"], 
-                    name: [:], 
-                    description: [:], 
-                    resource_name: row["assetbundleName"], 
-                    release_date: Date(timeIntervalSince1970: row["startAt"] / 1000), 
-                    episodes: [], 
-                    group_relevance: gr ?? [:], 
-                    assoc_cards: [])
+                return EventStoryGroup(id: row["id"],
+                                       name: [:],
+                                       description: [:],
+                                       resource_name: row["assetbundleName"],
+                                       release_date: Date(timeIntervalSince1970: row["startAt"] / 1000),
+                                       episodes: [],
+                                       group_relevance: gr ?? [:],
+                                       assoc_cards: [])
             }
         }
 
@@ -39,7 +38,7 @@ extension MasterDataService /* Events */ {
 
     func getStoryGroup(forEvent id: EventID) throws -> EventStoryGroup? {
         let eventStory = try dbQueue.read { db -> EventStoryGroup? in
-            let row = try Row.fetchOne(try db.makeStatement(literal: """
+            let row = try Row.fetchOne(db.makeStatement(literal: """
                 SELECT eventStories.id, events.assetbundleName, events.startAt,
                     json_group_object(eventStoryUnits.unit, eventStoryUnits.eventStoryUnitRelation) AS grel
                 FROM eventStories
@@ -49,50 +48,50 @@ extension MasterDataService /* Events */ {
                 GROUP BY eventStories.id
             """))
 
-            guard let row = row else {
+            guard let row else {
                 return nil
             }
-            
+
             var gr: [String: RelevanceType]? = nil
             if let groupRelevance: Data = row["grel"] {
                 gr = remapUnitCodes(try! JSONDecoder().decode([String: RelevanceType].self, from: groupRelevance))
             }
 
-            let group = EventStoryGroup(id: row["id"], 
-                name: [:], 
-                description: [:], 
-                resource_name: row["assetbundleName"], 
-                release_date: Date(timeIntervalSince1970: row["startAt"] / 1000), 
-                episodes: [], 
-                group_relevance: gr ?? [:], 
-                assoc_cards: [])
-            
-            let episodes = try Row.fetchAll(try db.makeStatement(literal: """
+            let group = EventStoryGroup(id: row["id"],
+                                        name: [:],
+                                        description: [:],
+                                        resource_name: row["assetbundleName"],
+                                        release_date: Date(timeIntervalSince1970: row["startAt"] / 1000),
+                                        episodes: [],
+                                        group_relevance: gr ?? [:],
+                                        assoc_cards: [])
+
+            let episodes = try Row.fetchAll(db.makeStatement(literal: """
                 SELECT scenarioId, title, episodeNo
                 FROM eventStories_eventStoryEpisodes
                 WHERE eventStoryId=\(id)
                 ORDER BY eventStoryId, episodeNo
             """)).map { row in
-                Episode(id: 0, 
-                    script: row["scenarioId"], 
-                    name: [:], 
-                    seqno: row["episodeNo"], 
-                    characters: [], // unused by tsumi, and left empty here
-                    voice_bnd: "scenario/\(row["scenarioId"]!)", 
-                    se_bnd: "eventsebnd/\(group.resource_name)")
+                Episode(id: 0,
+                        script: row["scenarioId"],
+                        name: [:],
+                        seqno: row["episodeNo"],
+                        characters: [], // unused by tsumi, and left empty here
+                        voice_bnd: "scenario/\(row["scenarioId"]!)",
+                        se_bnd: "eventsebnd/\(group.resource_name)")
             }
             group.episodes.append(contentsOf: episodes)
             return group
         }
 
-        guard var eventStory = eventStory else {
+        guard var eventStory else {
             return nil
         }
 
         let names = try stringService.getGroupTitles(forEntity: eventStory.id, inDomain: "event")
         eventStory = eventStory.applyGroupTitles(names)
 
-        let episodeNames = try stringService.getChapterTitles(forEntities: eventStory.episodes.map { $0.script }, inDomain: "event")
+        let episodeNames = try stringService.getChapterTitles(forEntities: eventStory.episodes.map(\.script), inDomain: "event")
         for episode in eventStory.episodes {
             if let ls = episodeNames[episode.script] {
                 episode.name = ls
