@@ -27,5 +27,6 @@ To set up cross-compilers for similar targets, do:
 2. Make your SDK. `swift run swift-sdk-generator make-linux-sdk --host-toolchain --target-arch aarch64 --distribution-name debian --distribution-version 12`
    Change the distro args as needed. 
 3. Install the generated SDK. `swift sdk install .../6.2.4-RELEASE_debian_bookworm_aarch64.artifactbundle`
-4. Inject the sqlite3 dev packages if needed. https://packages.debian.org/source/bookworm/sqlite3
+4. Inject the sqlite3 dev packages if needed: https://packages.debian.org/source/bookworm/sqlite3
+   The SDK is unpacked to `~/.swiftpm/swift-sdks`, inside there will be a sysroot you can extract files into.
 5. Now you can build against the custom SDK. `swift build --swift-sdk 6.2.4-RELEASE_debian_bookworm_aarch64 --triple aarch64-unknown-linux-gnu -c release --static-swift-stdlib`
