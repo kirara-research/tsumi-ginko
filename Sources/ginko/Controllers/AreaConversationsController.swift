@@ -7,7 +7,7 @@ struct AreaConversationListResponse: Codable {
 
 struct AreaConversationResponse: Codable {
     let area_conversation: AreaConversation
-    let related_area_conversation: [AreaConversation]
+    let related_area_conversations: [AreaConversation]
 }
 
 struct AreaConversationsController: RouteCollection {
@@ -68,7 +68,7 @@ struct AreaConversationsController: RouteCollection {
         }
 
         return Response(status: .ok, headers: standardHeaders(), body: Response.Body(
-            data: try! jsonEncoder().encode(AreaConversationResponse(area_conversation: primary, related_area_conversation: related)),
+            data: try! jsonEncoder().encode(AreaConversationResponse(area_conversation: primary, related_area_conversations: related)),
         ))
     }
 }
