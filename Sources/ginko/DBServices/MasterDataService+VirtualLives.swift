@@ -70,19 +70,22 @@ extension MasterDataService /* Virtual Live */ {
                     return .music(t)
                 }
             }
+            
+            if !needBroadcastMusicCharacters.isEmpty {
+                let characters = try Row.fetchAll(db.makeStatement(literal: """
+                    SELECT musicVocals.id, musicVocals.musicId, musicVocalType, 
+                        json_group_array(json_object('id', characterId, 'unit', 0)) AS charbnd
+                    FROM musicVocals
+                    LEFT JOIN musicVocals_characters ON (musicVocals.characters = musicVocals_characters._link)
+                    WHERE musicVocals.id IN \(needBroadcastMusicCharacters.keys) AND characterType='game_character'
+                    GROUP BY musicVocals.id
+                """))
 
-            let characters = try Row.fetchAll(db.makeStatement(literal: """
-                SELECT musicVocals.id, musicVocals.musicId, musicVocalType, 
-                    json_group_array(json_object('id', characterId, 'unit', 0)) AS charbnd
-                FROM musicVocals
-                LEFT JOIN musicVocals_characters ON (musicVocals.characters = musicVocals_characters._link)
-                WHERE musicVocals.id IN \(needBroadcastMusicCharacters.keys) AND characterType='game_character'
-            """))
-
-            for row in characters {
-                let cl = try! JSONDecoder().decode([UnitAssociatedCharacter].self, from: row["charbnd"])
-                for p in needBroadcastMusicCharacters[row["id"], default: []] {
-                    p.characters = cl
+                for row in characters {
+                    let cl = try! JSONDecoder().decode([UnitAssociatedCharacter].self, from: row["charbnd"])
+                    for p in needBroadcastMusicCharacters[row["id"], default: []] {
+                        p.characters = cl
+                    }
                 }
             }
 
