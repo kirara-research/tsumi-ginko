@@ -69,8 +69,8 @@ struct SearchResult: Codable {
     let script_id: String
     let lang: String
     let script_type: String
-    let group_type: String
-    let group_id: Int
+    let group_type: String?
+    let group_id: Int?
     let group_title: String?
     let episode_title: String?
     let matches: [SearchResultLine]
